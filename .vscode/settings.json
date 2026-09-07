@@ -23,6 +23,15 @@
   "clangd.arguments": [
     "--background-index",
     "--query-driver=**",
-    "--compile-commands-dir=/home/takeda/Documents/projects/masters-firmware/masters-firmware/build"
-  ]
+    "--compile-commands-dir=/home/takeda/Documents/projects/masters-firmware/build"
+  ],
+  "idf.currentSetup": "/home/takeda/.espressif/v6.0.2/esp-idf",
+  "idf.openOcdConfigs": [
+    "board/esp32s3-builtin.cfg"
+  ],
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32s3"
+  },
+  "idf.flashType": "UART",
+  "idf.port": "/dev/ttyACM0"
 }
