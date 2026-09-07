@@ -65,7 +65,7 @@ esp_err_t iota_json_init(const iota_json_config_t *config)
 
   esp_mqtt_client_register_event(s_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
 
-  esp_mqtt_client_start(s_client);
+  // esp_mqtt_client_start(s_client);
 
   ESP_LOGI(TAG, "Initialized");
 
