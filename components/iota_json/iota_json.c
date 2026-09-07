@@ -1,6 +1,9 @@
 #include "iota_json.h"
 #include "esp_log.h"
 #include "mqtt_client.h"
+#include "esp_event.h"
+#include "esp_netif.h"
+#include "esp_wifi.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -18,12 +21,14 @@ extern const uint8_t rootCA_pem_end[] asm("_binary_rootCA_pem_end");
 
 static esp_mqtt_client_handle_t s_client = NULL;
 static iota_json_config_t s_config;
+static bool s_mqtt_started = false;
 
 //**************************************************
 // Private Function Prototypes
 //**************************************************
 
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
+static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
 //**************************************************
 // Public Functions
@@ -65,7 +70,27 @@ esp_err_t iota_json_init(const iota_json_config_t *config)
 
   esp_mqtt_client_register_event(s_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
 
-  // esp_mqtt_client_start(s_client);
+  esp_err_t err = esp_event_handler_instance_register(WIFI_EVENT,
+                                                      ESP_EVENT_ANY_ID,
+                                                      &wifi_event_handler,
+                                                      NULL,
+                                                      NULL);
+  if (err != ESP_OK)
+  {
+    ESP_LOGE(TAG, "Failed to register WIFI_EVENT handler: %s", esp_err_to_name(err));
+    return err;
+  }
+
+  err = esp_event_handler_instance_register(IP_EVENT,
+                                            IP_EVENT_STA_GOT_IP,
+                                            &wifi_event_handler,
+                                            NULL,
+                                            NULL);
+  if (err != ESP_OK)
+  {
+    ESP_LOGE(TAG, "Failed to register IP_EVENT handler: %s", esp_err_to_name(err));
+    return err;
+  }
 
   ESP_LOGI(TAG, "Initialized");
 
@@ -134,5 +159,22 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
   default:
     ESP_LOGD(TAG, "Other event id: %ld", event_id);
     break;
+  }
+}
+
+static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
+{
+  if (!s_mqtt_started && event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
+  {
+    esp_mqtt_client_start(s_client);
+    s_mqtt_started = true;
+    return;
+  }
+
+  if (s_mqtt_started && event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
+  {
+    esp_mqtt_client_disconnect(s_client);
+    s_mqtt_started = false;
+    return;
   }
 }
