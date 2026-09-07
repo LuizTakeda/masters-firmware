@@ -1,0 +1,5 @@
+idf_component_register(
+  SRCS "iota_json.c"
+  INCLUDE_DIRS "include"
+  EMBED_TXTFILES "certs/rootCA.pem"
+)
