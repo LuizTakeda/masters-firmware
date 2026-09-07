@@ -34,4 +34,15 @@ void app_main(void)
   };
 
   ESP_ERROR_CHECK(iota_json_init(&iota_json_config));
+
+  int value = 0;
+  char str[16] = "";
+
+  while (1)
+  {
+    sprintf(str, "%d", value);
+    iota_json_send_attr("pot", str);
+    value++;
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
 }

@@ -97,6 +97,29 @@ esp_err_t iota_json_init(const iota_json_config_t *config)
   return ESP_OK;
 }
 
+esp_err_t iota_json_send_attr(const char *name, const char *value)
+{
+  if (s_client == NULL || name == NULL || value == NULL)
+  {
+    ESP_LOGE(TAG, "Invalid argument or MQTT client not initialized");
+    return ESP_ERR_INVALID_ARG;
+  }
+
+  char topic[160];
+  snprintf(topic, sizeof(topic), "/json/%s/%s/attrs/%s", s_config.api_key, s_config.device_id, name);
+
+  int msg_id = esp_mqtt_client_publish(s_client, topic, value, 0, 1, 0);
+  if (msg_id < 0)
+  {
+    ESP_LOGE(TAG, "Failed to publish attribute '%s' (msg_id=%d)", name, msg_id);
+    return ESP_FAIL;
+  }
+
+  ESP_LOGI(TAG, "Published to %s: %s (msg_id=%d)", topic, value, msg_id);
+  return ESP_OK;
+}
+
+
 //**************************************************
 // Private Functions
 //**************************************************
@@ -112,11 +135,11 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
   case MQTT_EVENT_CONNECTED:
     ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
 
-    // No IoT Agent JSON, inscreve-se no tópico de comandos: /<api_key>/<device_id>/cmd
+    // No IoT Agent JSON, inscreve-se no tópico de comandos: /json/<api_key>/<device_id>/cmd
     if (strlen(s_config.api_key) > 0 && strlen(s_config.device_id) > 0)
     {
       char cmd_topic[160];
-      snprintf(cmd_topic, sizeof(cmd_topic), "/%s/%s/cmd", s_config.api_key, s_config.device_id);
+      snprintf(cmd_topic, sizeof(cmd_topic), "/json/%s/%s/cmd", s_config.api_key, s_config.device_id);
       msg_id = esp_mqtt_client_subscribe(client, cmd_topic, 1);
       ESP_LOGI(TAG, "Subscribed to commands topic: %s (msg_id=%d)", cmd_topic, msg_id);
     }

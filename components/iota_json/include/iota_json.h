@@ -20,3 +20,5 @@ typedef struct
 //**************************************************
 
 esp_err_t iota_json_init(const iota_json_config_t *config);
+
+esp_err_t iota_json_send_attr(const char *name, const char *value);
