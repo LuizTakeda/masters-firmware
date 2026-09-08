@@ -2,8 +2,20 @@
 #include "esp_event.h"
 #include "wifi.h"
 #include "iota_json.h"
+#include "analog.h"
+#include "analog_events.h"
 
 #include <stdio.h>
+
+//**************************************************
+// Private Function Prototypes
+//**************************************************
+
+static void event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
+
+//**************************************************
+// Public Functions
+//**************************************************
 
 void app_main(void)
 {
@@ -35,14 +47,30 @@ void app_main(void)
 
   ESP_ERROR_CHECK(iota_json_init(&iota_json_config));
 
-  int value = 0;
-  char str[16] = "";
+  ESP_ERROR_CHECK(analog_init());
 
-  while (1)
+  ESP_ERROR_CHECK(esp_event_handler_instance_register(
+      ANALOG_EVENT,
+      ANALOG_EVENT_NEW_VALUE,
+      event_handler,
+      NULL,
+      NULL));
+}
+
+//**************************************************
+// Private Functions
+//**************************************************
+
+static void event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
+{
+  if (base == ANALOG_EVENT && event_id == ANALOG_EVENT_NEW_VALUE)
   {
-    sprintf(str, "%d", value);
+    analog_event_new_data_payload_t *payload = (analog_event_new_data_payload_t *)event_data;
+
+    char str[16] = "";
+    sprintf(str, "%d", payload->value);
     iota_json_send_attr("pot", str);
-    value++;
-    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    return;
   }
 }
