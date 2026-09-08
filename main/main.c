@@ -4,6 +4,8 @@
 #include "iota_json.h"
 #include "analog.h"
 #include "analog_events.h"
+#include "io.h"
+#include "io_events.h"
 
 #include <stdio.h>
 
@@ -48,10 +50,18 @@ void app_main(void)
   ESP_ERROR_CHECK(iota_json_init(&iota_json_config));
 
   ESP_ERROR_CHECK(analog_init());
+  ESP_ERROR_CHECK(io_init());
 
   ESP_ERROR_CHECK(esp_event_handler_instance_register(
       ANALOG_EVENT,
       ANALOG_EVENT_NEW_VALUE,
+      event_handler,
+      NULL,
+      NULL));
+
+  ESP_ERROR_CHECK(esp_event_handler_instance_register(
+      IO_EVENT,
+      IO_EVENT_NEW_INPUT,
       event_handler,
       NULL,
       NULL));
@@ -70,6 +80,17 @@ static void event_handler(void *handler_args, esp_event_base_t base, int32_t eve
     char str[16] = "";
     sprintf(str, "%d", payload->value);
     iota_json_send_attr("pot", str);
+
+    return;
+  }
+
+  if (base == IO_EVENT && event_id == IO_EVENT_NEW_INPUT)
+  {
+    io_event_new_input_payload_t *payload = (io_event_new_input_payload_t *)event_data;
+
+    char str[16] = "";
+    sprintf(str, "%d", payload->button_one);
+    iota_json_send_attr("btn", str);
 
     return;
   }
